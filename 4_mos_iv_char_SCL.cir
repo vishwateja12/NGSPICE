@@ -1,0 +1,86 @@
+Netlist to evaluate MOS I-V characterisitics
+
+** TSMC 180nm model library
+.include TSMC_180nm.txt
+** SCL 180 nm model library
+.lib 'ts18sl_scl.lib' tt_18
+** IBM 130 nm model
+.include IBM130nm.txt
+
+.param SUPPLY=1.8
+.param LAMBDA=0.09u
+.param LAMBDA130=0.065u
+.param width_N={20*LAMBDA}
+.param width_N130={20*LAMBDA130}
+.global gnd vdd
+
+VGS	G	gnd 'SUPPLY'
+VGSx	Gx	gnd 0.3V
+VDS D   gnd 1V
+VDSx Dx   gnd 1V
+VDS130 D130   gnd 1V
+VDS2 D2   gnd 1V
+VDS3 D3   gnd 1V
+VBS2 B2   gnd -0.7V
+VBS3 B3   gnd 0.7V
+
+
+*M130      D130       G       gnd     gnd  CMOSN130   W={width_N130}   L={2*LAMBDA130}
++ AS={5*width_N130*LAMBDA130} PS={10*LAMBDA130+2*width_N130} AD={5*width_N130*LAMBDA130} PD={10*LAMBDA130+2*width_N130}
+
+M130      D130       G       gnd     gnd  n18.4   W={width_N}   L={2*LAMBDA}
++ AS={5*width_N*LAMBDA} PS={10*LAMBDA+2*width_N} AD={5*width_N*LAMBDA} PD={10*LAMBDA+2*width_N}
+
+Mx      Dx       G       gnd     gnd  n18.4   W={width_N}   L={2*LAMBDA}
++ AS={5*width_N*LAMBDA} PS={10*LAMBDA+2*width_N} AD={5*width_N*LAMBDA} PD={10*LAMBDA+2*width_N}
+
+M1      D       G       gnd     gnd  CMOSN   W={width_N}   L={2*LAMBDA}
++ AS={5*width_N*LAMBDA} PS={10*LAMBDA+2*width_N} AD={5*width_N*LAMBDA} PD={10*LAMBDA+2*width_N}
+
+M2      D2       G       gnd     B2  CMOSN   W={width_N}   L={2*LAMBDA}
++ AS={5*width_N*LAMBDA} PS={10*LAMBDA+2*width_N} AD={5*width_N*LAMBDA} PD={10*LAMBDA+2*width_N}
++ AS={5*width_N*LAMBDA} PS={10*LAMBDA+2*width_N} AD={5*width_N*LAMBDA} PD={10*LAMBDA+2*width_N}
+
+M3      D3       G       gnd     B3  CMOSN   W={width_N}   L={2*LAMBDA}
++ AS={5*width_N*LAMBDA} PS={10*LAMBDA+2*width_N} AD={5*width_N*LAMBDA} PD={10*LAMBDA+2*width_N}
++ AS={5*width_N*LAMBDA} PS={10*LAMBDA+2*width_N} AD={5*width_N*LAMBDA} PD={10*LAMBDA+2*width_N}
+
+.dc VGS 0 1.8 0.05
+*.dc VGSx 0 0.8 0.08 
+*.dc VGSx 0.8 0 -0.08 
+*.dc VGSx 0 1.8 0.08 VDSx 0 0.24 0.08
+*.dc VDSx 0 1.8 0.05
+*.dc VDS 0 1.8 0.05 VGS 0 1.8 0.3
+.control
+set hcopypscolor = 1 *White background
+set color0=white ** color0 is used to set the background of the plot (manual sec:17.7))
+set color1=black ** color1 is used to set the grid color of the plot (manual sec:17.7))
+
+run
+let x130 = (-VDS130#branch)
+let xx = (-VDSx#branch)
+let x = (-VDS#branch)
+let x2 = (-VDS2#branch)
+let x3 = (-VDS3#branch)
+let y = deriv(-VDS#branch)
+let y2 = deriv(-VDS2#branch)
+let y3 = deriv(-VDS3#branch)
+*plot y vs x
+*plot deriv(-VDS#branch) vs (-VDS#branch)  
+*plot -Vx#branch
+*plot (-VDS130#branch) (-VDSx#branch)(-VDS#branch)
+plot (10*log(-VDS#branch)) 
+*plot (10*log(-VDSx#branch)) (10*log(-VDS130#branch)) 
+plot (-VDSx#branch)(-VDS130#branch) (-VDS#branch)
+*plot (-VDS#branch)(-VDS2#branch)(-VDS3#branch)
+*plot deriv(-VDS#branch) deriv(-VDS2#branch) deriv(-VDS3#branch)
+*plot (-VDS#branch)(-VDS2#branch)
+*plot -VDS2#branch
+*plot -VDS2#branch, -VDS#branch
+*hardcopy mos_id_vgsi_vt.eps -VDS#branch -VDS2#branch
+*hardcopy mos_id_vgs_vt.eps (-VDS#branch) (-VDS2#branch) (-VDS3#branch)
+*hardcopy gm_vt.eps deriv(-VDS#branch) deriv(-VDS2#branch) deriv(-VDS3#branch)
+*hardcopy plot y vs x mos_id_vgs_vt_gm_fixed_id.eps
+*hardcopy mos_id_vgs_vt_gm_fixed_id.eps y vs x y2 vs x2 y3 vs x3
+*hardcopy mos_id_vds.eps -VDS#branch
+.endc

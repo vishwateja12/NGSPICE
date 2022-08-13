@@ -1,0 +1,51 @@
+
+*INCLUDE your model file
+.include TSMC_180nm.txt
+.param SUPPLY=1.8
+.param LAMBDA=0.09u
+.global gnd vdd
+
+.options post
+
+
+Vdd	vdd	gnd	'SUPPLY'
+vin in 0 sin(0 0.025 50Meg 0 0) ac 1
+** For DC analysis
+*vin a 0 1V
+
+Cb in a 1p
+Rb b a 1Meg
+Cb2 b out 1p
+RL out 0 50MEG
+
+.subckt inv y x vdd gnd
+.param width_P={20*LAMBDA}
+.param width_N={10*LAMBDA}
+M1      y       x       gnd     gnd  CMOSN   W={width_N}   L={LAMBDA}
++ AS={5*width_N*LAMBDA} PS={10*LAMBDA+2*width_N} AD={5*width_N*LAMBDA} PD={10*LAMBDA+2*width_N}
+M2      y       x       vdd     vdd  CMOSP   W={width_P}   L={LAMBDA}
++ AS={5*width_P*LAMBDA} PS={10*LAMBDA+2*width_P} AD={5*width_P*LAMBDA} PD={10*LAMBDA+2*width_P}
+.ends inv
+
+x1 b a vdd gnd inv
+
+*.dc vin 0 1.8 0.001
+*.ac dec 10 1k 10G
+.tran 0.1n 200n
+
+.control
+set hcopypscolor = 1 
+set color0=white 
+set color1=black 
+
+run
+
+*plot v(b)
+*plot deriv(-vdd#branch)
+*plot (-vdd#branch)
+*plot deriv(-v(b))
+plot v(a) v(b) v(in)
+*plot db(-v(b)/v(in))
+linearize
+fourier 50Meg v(out)
+.endc
